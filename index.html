@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TwinMind Live Suggestions</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --panel: #171a21;
+            --panel-2: #1d212a;
+            --border: #272c38;
+            --text: #e7e9ee;
+            --muted: #8a93a6;
+            --accent: #6ea8fe;
+            --accent-2: #b388ff;
+            --good: #4ade80;
+            --warn: #fbbf24;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .top-bar {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 0 1rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .top-bar h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .top-bar .subtitle {
+            font-size: 0.875rem;
+            color: var(--muted);
+            margin-left: 0.5rem;
+        }
+
+        .main-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1px;
+            background: var(--border);
+            overflow: hidden;
+        }
+
+        .column {
+            background: var(--panel);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .column-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+        }
+
+        .column-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .column-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .column-body::-webkit-scrollbar-track {
+            background: var(--panel-2);
+        }
+
+        .column-body::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .column-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Mic Column */
+        .mic-button {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            background: var(--accent);
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            margin: 2rem auto;
+            display: block;
+            transition: all 0.3s;
+        }
+
+        .mic-button:hover {
+            transform: scale(1.05);
+        }
+
+        .mic-button.recording {
+            background: var(--danger);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
+            }
+        }
+
+        .status-text {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+
+        .transcript-chunk {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .transcript-chunk .time {
+            color: var(--muted);
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--muted);
+            padding: 2rem;
+            font-size: 0.875rem;
+        }
+
+        /* Suggestions Column */
+        .suggestions-header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .reload-btn {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .reload-btn:hover {
+            background: var(--border);
+        }
+
+        .countdown {
+            color: var(--muted);
+            font-size: 0.75rem;
+        }
+
+        .suggestion-batch {
+            margin-bottom: 2rem;
+        }
+
+        .batch-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .suggestion-card {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .suggestion-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .suggestion-card.newest {
+            border-color: var(--accent);
+        }
+
+        .suggestion-card.stale {
+            opacity: 0.4;
+        }
+
+        .suggestion-type {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .type-question { background: rgba(110, 168, 254, 0.2); color: var(--accent); }
+        .type-talking { background: rgba(179, 136, 255, 0.2); color: var(--accent-2); }
+        .type-answer { background: rgba(74, 222, 128, 0.2); color: var(--good); }
+        .type-fact { background: rgba(251, 191, 36, 0.2); color: var(--warn); }
+
+        .suggestion-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .suggestion-preview {
+            font-size: 0.75rem;
+            color: var(--muted);
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .suggestion-more {
+            font-size: 0.75rem;
+            color: var(--accent);
+            margin-top: 0.5rem;
+            text-align: right;
+        }
+
+        /* Chat Column */
+        .chat-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chat-message {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-message.user {
+            align-items: flex-end;
+        }
+
+        .chat-message.assistant {
+            align-items: flex-start;
+        }
+
+        .message-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .chat-message.user .message-bubble {
+            background: rgba(110, 168, 254, 0.2);
+            border-radius: 12px 12px 2px 12px;
+        }
+
+        .chat-message.assistant .message-bubble {
+            background: var(--panel-2);
+            border-radius: 12px 12px 12px 2px;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.75rem 1rem;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--muted);
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-family: inherit;
+            resize: none;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .send-btn {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .send-btn:hover {
+            background: #5a96e8;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .warning-banner {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid var(--warn);
+            color: var(--warn);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="top-bar">
+            <div>
+                <span style="font-size: 1.25rem; font-weight: 600;">TwinMind</span>
+                <span class="subtitle">AI Meeting Copilot</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--muted);">
+                <span id="session-time">00:00</span>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Column 1: Mic & Transcript -->
+            <div class="column">
+                <div class="column-header">Transcript</div>
+                <div class="column-body" id="transcript-body">
+                    <button class="mic-button" id="mic-btn">🎤</button>
+                    <div class="status-text" id="status-text">Click to start recording</div>
+                    <div id="transcript-list"></div>
+                </div>
+            </div>
+
+            <!-- Column 2: Live Suggestions -->
+            <div class="column">
+                <div class="column-header">Live Suggestions</div>
+                <div class="column-body" id="suggestions-body">
+                    <div class="suggestions-header-controls">
+                        <button class="reload-btn" id="reload-btn">↻ Reload</button>
+                        <span class="countdown" id="countdown">Next in 30s</span>
+                    </div>
+                    <div id="suggestions-list">
+                        <div class="empty-state">Start recording to see live suggestions</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: Chat -->
+            <div class="column">
+                <div class="column-header">Chat</div>
+                <div class="column-body" id="chat-body">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="empty-state">Click a suggestion or ask anything</div>
+                    </div>
+                </div>
+                <div class="column-footer">
+                    <div class="chat-input-area">
+                        <textarea class="chat-input" id="chat-input" placeholder="Type a message..." rows="1"></textarea>
+                        <button class="send-btn" id="send-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:8080/api';
+        const GROQ_API_KEY = localStorage.getItem('groq_api_key') || '';
+        
+        // State
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let transcript = [];
+        let suggestionBatches = [];
+        let chatMessages = [];
+        let countdownTimer = null;
+        let countdownSeconds = 30;
+        let batchCounter = 0;
+        let sessionStartTime = null;
+
+        // Demo data for simulation
+        const DEMO_TRANSCRIPTS = [
+            "We're discussing backend scaling strategies for our new microservices architecture.",
+            "The main concern is handling websocket connections at scale, especially for real-time features.",
+            "Discord uses sharding to distribute websocket connections across multiple servers.",
+            "What about using Kafka for event streaming? The licensing costs might be an issue.",
+            "There was a major Slack outage last month due to database connection pooling problems."
+        ];
+
+        const DEMO_SUGGESTIONS = [
+            [
+                { type: "Question to Ask", title: "What sharding strategy does Discord use?", preview: "Discord implements a horizontal sharding approach where each shard handles a subset of guilds. They use consistent hashing to distribute load evenly and maintain shard affinity for related data." },
+                { type: "Talking Point", title: "Consider Redis Pub/Sub for real-time", preview: "Redis Pub/Sub offers low-latency message broadcasting with minimal overhead. It's simpler than Kafka for real-time use cases and doesn't require complex consumer group management." },
+                { type: "Fact Check", title: "Kafka licensing clarification", preview: "Kafka itself is open-source under Apache 2.0 license and free to use. However, managed services like Confluent Cloud have pricing tiers. Self-hosted Kafka only incurs infrastructure costs." }
+            ],
+            [
+                { type: "Answer", title: "Websocket scaling best practices", preview: "Use sticky sessions at load balancer level, implement connection draining for graceful shutdowns, and consider using a message broker like Redis or RabbitMQ for cross-server communication." },
+                { type: "Question to Ask", title: "What was the root cause of Slack's outage?", preview: "The outage was caused by a cascading failure in their database connection pool. A sudden spike in connections exhausted the pool, causing timeouts that triggered retries, which further overwhelmed the system." },
+                { type: "Clarification", title: "Microservices vs Monolith trade-offs", preview: "Microservices offer independent scaling and deployment but add complexity in distributed tracing, data consistency, and inter-service communication. Consider starting with a modular monolith." }
+            ],
+            [
+                { type: "Talking Point", title: "Implement circuit breakers", preview: "Circuit breakers prevent cascading failures by stopping requests to failing services. Use libraries like Resilience4j or Hystrix to implement timeout, retry, and fallback patterns." },
+                { type: "Fact Check", title: "Discord's infrastructure scale", preview: "Discord handles over 15 million concurrent users and processes billions of messages daily. They use Elixir for real-time systems and Rust for performance-critical components." },
+                { type: "Question to Ask", title: "Should we use gRPC or REST?", preview: "gRPC offers better performance with binary serialization and HTTP/2, ideal for internal service communication. REST is better for public APIs due to broader client support and easier debugging." }
+            ]
+        ];
+
+        let demoTranscriptIndex = 0;
+        let demoSuggestionIndex = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            checkApiKey();
+            updateSessionTime();
+            setInterval(updateSessionTime, 1000);
+        });
+
+        function setupEventListeners() {
+            document.getElementById('mic-btn').addEventListener('click', toggleRecording);
+            document.getElementById('reload-btn').addEventListener('click', reloadSuggestions);
+            document.getElementById('send-btn').addEventListener('click', sendChatMessage);
+            document.getElementById('chat-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                }
+            });
+        }
+
+        function checkApiKey() {
+            if (!GROQ_API_KEY) {
+                const warning = document.createElement('div');
+                warning.className = 'warning-banner';
+                warning.textContent = '⚠ Add your Groq API key in browser console: localStorage.setItem("groq_api_key", "your-key")';
+                document.getElementById('suggestions-body').insertBefore(
+                    warning,
+                    document.getElementById('suggestions-body').firstChild
+                );
+            }
+        }
+
+        function updateSessionTime() {
+            if (!sessionStartTime) return;
+            const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            document.getElementById('session-time').textContent = `${minutes}:${seconds}`;
+        }
+
+        async function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                await startRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.start(5000);
+                isRecording = true;
+                sessionStartTime = Date.now();
+
+                document.getElementById('mic-btn').classList.add('recording');
+                document.getElementById('status-text').textContent = 'Recording...';
+
+                // Start demo transcript simulation
+                simulateTranscript();
+
+                // Start suggestion countdown
+                startCountdown();
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                alert('Could not access microphone. Please check permissions.');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+
+            isRecording = false;
+            document.getElementById('mic-btn').classList.remove('recording');
+            document.getElementById('status-text').textContent = 'Click to start recording';
+
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+        }
+
+        function simulateTranscript() {
+            if (!isRecording) return;
+
+            const text = DEMO_TRANSCRIPTS[demoTranscriptIndex % DEMO_TRANSCRIPTS.length];
+            demoTranscriptIndex++;
+
+            addTranscriptChunk(text);
+
+            setTimeout(() => simulateTranscript(), 30000);
+        }
+
+        function addTranscriptChunk(text) {
+            const timestamp = new Date().toLocaleTimeString();
+            transcript.push({ text, timestamp });
+
+            const listEl = document.getElementById('transcript-list');
+            const chunkEl = document.createElement('div');
+            chunkEl.className = 'transcript-chunk';
+            chunkEl.innerHTML = `<span class="time">[${timestamp}]</span>${text}`;
+            listEl.appendChild(chunkEl);
+
+            document.getElementById('transcript-body').scrollTop = document.getElementById('transcript-body').scrollHeight;
+        }
+
+        function startCountdown() {
+            countdownSeconds = 30;
+            updateCountdown();
+
+            countdownTimer = setInterval(() => {
+                countdownSeconds--;
+                updateCountdown();
+
+                if (countdownSeconds <= 0) {
+                    reloadSuggestions();
+                    countdownSeconds = 30;
+                }
+            }, 1000);
+        }
+
+        function updateCountdown() {
+            document.getElementById('countdown').textContent = `Next in ${countdownSeconds}s`;
+        }
+
+        async function reloadSuggestions() {
+            if (!isRecording) return;
+
+            const suggestions = DEMO_SUGGESTIONS[demoSuggestionIndex % DEMO_SUGGESTIONS.length];
+            demoSuggestionIndex++;
+
+            batchCounter++;
+            const batch = {
+                id: batchCounter,
+                timestamp: new Date().toLocaleTimeString(),
+                suggestions
+            };
+
+            suggestionBatches.unshift(batch);
+            renderSuggestions();
+
+            countdownSeconds = 30;
+        }
+
+        function renderSuggestions() {
+            const listEl = document.getElementById('suggestions-list');
+            listEl.innerHTML = '';
+
+            if (suggestionBatches.length === 0) {
+                listEl.innerHTML = '<div class="empty-state">Start recording to see live suggestions</div>';
+                return;
+            }
+
+            suggestionBatches.forEach((batch, batchIndex) => {
+                const batchEl = document.createElement('div');
+                batchEl.className = 'suggestion-batch';
+
+                const labelEl = document.createElement('div');
+                labelEl.className = 'batch-label';
+                labelEl.textContent = `Batch #${batch.id} • ${batch.timestamp}`;
+                batchEl.appendChild(labelEl);
+
+                batch.suggestions.forEach(suggestion => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = `suggestion-card ${batchIndex === 0 ? 'newest' : 'stale'}`;
+                    cardEl.onclick = () => handleSuggestionClick(suggestion);
+
+                    const typeClass = suggestion.type.toLowerCase().includes('question') ? 'question' :
+                                     suggestion.type.toLowerCase().includes('talking') ? 'talking' :
+                                     suggestion.type.toLowerCase().includes('answer') ? 'answer' : 'fact';
+
+                    cardEl.innerHTML = `
+                        <div class="suggestion-type type-${typeClass}">${suggestion.type}</div>
+                        <div class="suggestion-title">${suggestion.title}</div>
+                        <div class="suggestion-preview">${suggestion.preview}</div>
+                        <div class="suggestion-more">→ More</div>
+                    `;
+
+                    batchEl.appendChild(cardEl);
+                });
+
+                listEl.appendChild(batchEl);
+            });
+        }
+
+        function handleSuggestionClick(suggestion) {
+            const userMessage = `${suggestion.title}\n\n${suggestion.preview}`;
+            addChatMessage('user', userMessage);
+
+            setTimeout(() => {
+                const assistantReply = `Based on the conversation about "${suggestion.title}", here's a detailed explanation:\n\n${suggestion.preview}\n\nThis information is derived from the current meeting context and industry best practices. Would you like me to elaborate on any specific aspect?`;
+                addChatMessage('assistant', assistantReply);
+            }, 600);
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            addChatMessage('user', message);
+            input.value = '';
+
+            setTimeout(() => {
+                const reply = `I understand you're asking about: "${message}". Based on the meeting transcript, here's my response:\n\nThis is a simulated response. In production, this would be generated by the AI based on the full conversation context and your specific question.`;
+                addChatMessage('assistant', reply);
+            }, 600);
+        }
+
+        function addChatMessage(role, content) {
+            const timestamp = new Date().toLocaleTimeString();
+            chatMessages.push({ role, content, timestamp });
+
+            const messagesEl = document.getElementById('chat-messages');
+            
+            // Remove empty state
+            const emptyState = messagesEl.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            const messageEl = document.createElement('div');
+            messageEl.className = `chat-message ${role}`;
+
+            const label = role === 'user' ? 'You' : 'TwinMind';
+            messageEl.innerHTML = `
+                <div class="message-label">${label}</div>
+                <div class="message-bubble">${content}</div>
+            `;
+
+            messagesEl.appendChild(messageEl);
+            document.getElementById('chat-body').scrollTop = document.getElementById('chat-body').scrollHeight;
+        }
+    </script>
+</body>
+</html>
