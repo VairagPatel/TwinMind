@@ -13,7 +13,7 @@ export const useSuggestionRefresh = (flushAudio: () => Promise<void>) => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
   const isRefreshingRef = useRef(false);
   
   const fetchSuggestions = useCallback(async () => {

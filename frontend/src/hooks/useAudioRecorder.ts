@@ -5,7 +5,7 @@ import { useAppStore } from '../store/useAppStore';
 export const useAudioRecorder = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const uploadIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const uploadIntervalRef = useRef<number | null>(null);
   
   const { apiKey, addTranscriptChunk } = useAppStore();
   

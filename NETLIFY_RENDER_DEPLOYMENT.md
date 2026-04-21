@@ -106,8 +106,8 @@ Click **"Show advanced"** → **"New variable"**
 Add this variable:
 
 | Key | Value |
-|-----|-------|
-| `VITE_API_BASE_URL` | `https://your-backend-url.onrender.com` |
+|-----|-------|VITE_API_BASE_URL
+| `` | `https://your-backend-url.onrender.com` |
 
 ⚠️ **IMPORTANT**: Replace with YOUR actual Render backend URL from Part 1, Step 6
 
